@@ -1,25 +1,30 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { headers } from 'next/headers';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: '2025-12-15.clover' as any });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { 
+  apiVersion: '2025-12-15.clover' as any 
+});
 
 export async function POST(req: Request) {
-  const sig = req.headers.get('stripe-signature') as string;
   const body = await req.text();
+  const headersList = await headers();
+  const signature = headersList.get('stripe-signature') as string;
 
-  let event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET as string);
-  } catch (err) {
-    return NextResponse.json({ error: 'Webhook Error' }, { status: 400 });
-  }
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    // Aqui, atualize o usuário como subscribed: true. Por simplicidade, logue.
-    console.log(`Usuário ${session.customer_email} assinou!`);
-    // Em produção, use DB para marcar subscribed.
+    if (event.type === 'checkout.session.completed') {
+      // Aqui o Stripe avisa que o cliente pagou com sucesso!
+      console.log('✅ Pagamento confirmado no SeduzIA!');
+    }
+    return NextResponse.json({ received: true });
+  } catch (err: any) {
+    console.error('Erro no Webhook:', err.message);
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
-
-  return NextResponse.json({ received: true });
 }
