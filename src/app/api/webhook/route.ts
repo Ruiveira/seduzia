@@ -19,7 +19,6 @@ export async function POST(req: Request) {
     );
 
     if (event.type === 'checkout.session.completed') {
-      // Aqui o Stripe avisa que o cliente pagou com sucesso!
       console.log('✅ Pagamento confirmado no SeduzIA!');
     }
     return NextResponse.json({ received: true });
