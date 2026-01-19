@@ -1,7 +1,9 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions, User } from 'next-auth';
+import { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-export const authOptions = {
+// Definindo os tipos para evitar erros no build da Vercel
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -10,9 +12,13 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        // Lógica simples: usuário fixo para teste. Em produção, use DB.
         if (credentials?.username === 'user' && credentials?.password === 'pass') {
-          return { id: '1', name: 'User', email: 'user@example.com', subscribed: false };  // subscribed: false por default
+          return { 
+            id: '1', 
+            name: 'User', 
+            email: 'user@example.com', 
+            subscribed: false 
+          } as any;
         }
         return null;
       },
@@ -20,12 +26,17 @@ export const authOptions = {
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.subscribed = user.subscribed;
+    // Correção do erro: Definindo explicitamente os tipos de token e user
+    async jwt({ token, user }: { token: JWT; user?: any }) {
+      if (user) {
+        token.subscribed = user.subscribed;
+      }
       return token;
     },
-    async session({ session, token }) {
-      if (session.user) session.user.subscribed = token.subscribed;
+    async session({ session, token }: { session: any; token: JWT }) {
+      if (session.user) {
+        session.user.subscribed = token.subscribed;
+      }
       return session;
     },
   },
